@@ -463,6 +463,20 @@ header h1 {
     font-size: 0.9rem;
 }
 
+.calibration-start {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.calibration-prompt {
+    color: #ff9800;
+    font-weight: 500;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
 .calibration-grid {
     display: flex;
     flex-direction: column;

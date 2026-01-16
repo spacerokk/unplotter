@@ -139,10 +139,15 @@ export class AxisCalibrator {
         const axisKey = axis === 'x' ? 'xAxis' : 'yAxis';
         const segment = this.calibrationSegments[axisKey];
         const values = this.calibrationValues[axisKey];
-        
-        return segment !== null && 
-               values.min !== null && 
+
+        return segment !== null &&
+               values.min !== null &&
                values.max !== null;
+    }
+
+    hasSegment(axis) {
+        const axisKey = axis === 'x' ? 'xAxis' : 'yAxis';
+        return this.calibrationSegments[axisKey] !== null;
     }
 
     checkIfFullyCalibrated() {

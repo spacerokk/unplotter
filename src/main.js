@@ -90,8 +90,8 @@ class UnPlotApp {
 
         // Calibration elements
         this.calibrationSection = document.getElementById('calibrationSection');
-        this.selectXAxisBtn = document.getElementById('selectXAxis');
-        this.selectYAxisBtn = document.getElementById('selectYAxis');
+        this.startCalibrationBtn = document.getElementById('startCalibration');
+        this.calibrationPrompt = document.getElementById('calibrationPrompt');
         this.xMinInput = document.getElementById('xMinValue');
         this.xMaxInput = document.getElementById('xMaxValue');
         this.yMinInput = document.getElementById('yMinValue');
@@ -141,8 +141,7 @@ class UnPlotApp {
         this.deleteAllLabelsBtn.addEventListener('click', () => this.deleteAllLabels());
 
         // Calibration event listeners
-        this.selectXAxisBtn.addEventListener('click', () => this.startAxisSelection('x'));
-        this.selectYAxisBtn.addEventListener('click', () => this.startAxisSelection('y'));
+        this.startCalibrationBtn.addEventListener('click', () => this.startSequentialCalibration());
 
         this.xMinInput.addEventListener('change', () => this.updateCalibrationValue('x', 'start'));
         this.xMaxInput.addEventListener('change', () => this.updateCalibrationValue('x', 'end'));
@@ -364,11 +363,20 @@ class UnPlotApp {
                 console.log(`${axis.toUpperCase()}-axis calibration path selected with ${curve.points.length} points`);
             }
 
+            // Auto-advance from X to Y axis
+            if (axis === 'x' && !this.axisCalibrator.hasSegment('y')) {
+                this.pendingCalibration = { axis: 'y' };
+                this.showCalibrationPrompt('Now click a line for the Y-axis');
+                // Stay in calibration mode with crosshair cursor
+                this.checkCalibrationComplete();
+                return;
+            }
+
+            // Exit calibration mode after Y-axis (or if Y was already set)
             this.calibrationMode = false;
             this.pendingCalibration = null;
             this.canvas.style.cursor = 'default';
-
-            this.removeCalibrationButtonHighlight();
+            this.hideCalibrationPrompt();
 
             if (this.selectionMode) {
                 this.canvasOverlay.enableSelectionMode(true);
@@ -561,14 +569,41 @@ class UnPlotApp {
         }
     }
 
+    startSequentialCalibration() {
+        // Start with X-axis
+        this.calibrationMode = true;
+        this.pendingCalibration = { axis: 'x' };
+
+        this.axisCalibrator.startCalibration('x');
+        this.showCalibrationPrompt('Click a line representing the X-axis');
+
+        if (this.canvasOverlay) {
+            this.canvasOverlay.enableSingleSelectionMode(true);
+        }
+
+        this.canvas.style.cursor = 'crosshair';
+    }
+
+    showCalibrationPrompt(message) {
+        if (this.calibrationPrompt) {
+            this.calibrationPrompt.textContent = message;
+            this.calibrationPrompt.style.display = 'inline';
+        }
+    }
+
+    hideCalibrationPrompt() {
+        if (this.calibrationPrompt) {
+            this.calibrationPrompt.textContent = '';
+            this.calibrationPrompt.style.display = 'none';
+        }
+    }
+
     startAxisSelection(axis) {
         this.calibrationMode = true;
         this.pendingCalibration = { axis };
 
         const info = this.axisCalibrator.startCalibration(axis);
         console.log(info.message);
-
-        this.highlightCalibrationButton(axis);
 
         if (this.canvasOverlay) {
             this.canvasOverlay.enableSingleSelectionMode(true);
@@ -660,6 +695,12 @@ class UnPlotApp {
 
     resetCalibration() {
         this.axisCalibrator.reset();
+
+        // Reset calibration mode state
+        this.calibrationMode = false;
+        this.pendingCalibration = null;
+        this.canvas.style.cursor = 'default';
+        this.hideCalibrationPrompt();
 
         this.xMinInput.value = '';
         this.xMaxInput.value = '';

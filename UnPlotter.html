@@ -138,21 +138,24 @@
                     <!-- Calibration Section -->
                     <div class="calibration-section" id="calibrationSection" style="display: none;">
                         <h3>Axis Calibration</h3>
-                        <p class="calibration-instruction">Select a line segment for each axis and enter its min/max values in data coordinates.</p>
+
+                        <div class="calibration-start">
+                            <button id="startCalibration" class="btn btn-primary">Start Calibration</button>
+                            <span id="calibrationPrompt" class="calibration-prompt"></span>
+                        </div>
 
                         <div class="calibration-grid">
                             <div class="axis-calibration">
                                 <div class="calibration-points">
                                     <div class="point-input">
                                         <h4>X</h4>
-                                        <button id="selectXAxis" class="btn btn-calibrate">Select</button>
+                                        <span id="xAxisStatus" class="status-indicator">○</span>
                                         <input type="number" id="xMinValue" placeholder="X Min" step="any">
                                         <input type="number" id="xMaxValue" placeholder="X Max" step="any">
                                         <label style="margin-left: 0.75rem;">
                                             <input type="checkbox" id="xLogScale">
                                             log
                                         </label>
-                                        <span id="xAxisStatus" class="status-indicator">○</span>
                                     </div>
                                 </div>
                             </div>
@@ -161,14 +164,13 @@
                                 <div class="calibration-points">
                                     <div class="point-input">
                                         <h4>Y</h4>
-                                        <button id="selectYAxis" class="btn btn-calibrate">Select</button>
+                                        <span id="yAxisStatus" class="status-indicator">○</span>
                                         <input type="number" id="yMinValue" placeholder="Y Min" step="any">
                                         <input type="number" id="yMaxValue" placeholder="Y Max" step="any">
                                         <label>
                                             <input type="checkbox" id="yLogScale">
                                             log
                                         </label>
-                                        <span id="yAxisStatus" class="status-indicator">○</span>
                                     </div>
                                 </div>
                             </div>
