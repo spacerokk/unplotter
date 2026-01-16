@@ -12,6 +12,7 @@ UnPlotter is a browser-based tool that allows you to extract data from technical
 - **PDF Support** - Load and navigate multi-page PDF documents
 - **Vector Path Extraction** - Automatically extracts vector paths from PDFs
 - **Axis Calibration** - Convert page coordinates to real data values
+- **Linear or Logarithmic Axes** - Extract data from plots with linear or logarithmic axes
 - **Curve Labeling** - Identify extracted curves with custom labels
 - **Multiple Export Formats** - Download data as CSV or JSON
 - **Privacy First** - Your files never leave your browser
@@ -36,7 +37,7 @@ UnPlotter is a browser-based tool that allows you to extract data from technical
 - Only works with vector-based plots (not raster images)
 - Requires manual axis calibration
 - Requires manual curve identification and labeling
-- No support for logarithmic axes or polar plots
+- No support for polar plots
   - Extract linear data and transform in an external tool
 - Some complex PDF operations may not extract paths correctly
   - Please report any issues you encounter with sample files if you can
