@@ -419,8 +419,9 @@ class UnPlotApp {
         this.updateCurveBrowser();
         this.updateExportPreview();
 
-        // Show calibration section when first curve is labeled
-        if (this.labeledCurves.length > 0) {
+        // Show export section if calibration is complete and we have curves
+        if (this.labeledCurves.length > 0 && this.axisCalibrator.isCalibrated) {
+            this.exportSection.style.display = 'block';
         }
     }
 
