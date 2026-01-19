@@ -105,7 +105,7 @@ export class CanvasOverlay {
         this.overlayCanvas.style.pointerEvents = enabled ? 'auto' : 'none';
 
         if (enabled) {
-            this.drawAllCurves();
+            this.redraw();
         } else {
             this.clear();
         }
@@ -116,7 +116,7 @@ export class CanvasOverlay {
         this.overlayCanvas.style.pointerEvents = enabled ? 'auto' : 'none';
 
         if (enabled) {
-            this.drawAllCurves();
+            this.redraw();
         } else {
             this.clear();
         }
