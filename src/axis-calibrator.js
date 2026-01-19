@@ -86,7 +86,7 @@ export class AxisCalibrator {
 
     setCalibrationSegment(axis, segment) {
         const axisKey = axis === 'x' ? 'xAxis' : 'yAxis';
-        
+
         // If segment is actually a curve with points array, store original points (PDF coords)
         if (segment.points && segment.points.length > 0) {
             this.calibrationCurves[axisKey] = segment.points;
@@ -96,9 +96,10 @@ export class AxisCalibrator {
             this.calibrationCurves[axisKey] = null;
             this.calibrationSegments[axisKey] = segment;
         }
-        
+
         console.log(`Set ${axis}-axis segment:`, this.calibrationSegments[axisKey]);
-        
+
+        this.checkIfFullyCalibrated();
         return this.isAxisCalibrated(axis);
     }
     
