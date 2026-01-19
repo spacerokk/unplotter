@@ -366,25 +366,31 @@ class UnPlotApp {
             // Auto-advance from X to Y axis
             if (axis === 'x' && !this.axisCalibrator.hasSegment('y')) {
                 this.pendingCalibration = { axis: 'y' };
+                this.axisCalibrator.startCalibration('y');
                 this.showCalibrationPrompt('Now click a line for the Y-axis');
-                // Stay in calibration mode with crosshair cursor
                 this.checkCalibrationComplete();
                 return;
             }
 
-            // Exit calibration mode after Y-axis (or if Y was already set)
+            // Exit calibration mode
             this.calibrationMode = false;
             this.pendingCalibration = null;
             this.canvas.style.cursor = 'default';
-            this.hideCalibrationPrompt();
+
+            // Show prompt only if values still needed, otherwise hide it
+            if (axis === 'y' && !this.axisCalibrator.isCalibrated) {
+                this.showCalibrationPrompt('Now enter min/max values for each axis');
+            } else {
+                this.hideCalibrationPrompt();
+            }
+
+            this.checkCalibrationComplete();
 
             if (this.selectionMode) {
                 this.canvasOverlay.enableSelectionMode(true);
             } else {
                 this.canvasOverlay.enableSelectionMode(false);
             }
-
-            this.checkCalibrationComplete();
         } else {
             this.selectedCurveForLabeling = detail.curve;
             console.log(`Selected curve with ${detail.curve.points.length} points - enter a label to save it`);
@@ -630,7 +636,7 @@ class UnPlotApp {
 
         if (status.isCalibrated) {
             this.calibrationStatus.innerHTML = '<span class="status-text success">✅ Calibration Complete!</span>';
-            console.log('Calibration complete! You can now export data.');
+            this.hideCalibrationPrompt();
 
             this.exportSection.style.display = 'block';
             this.updateExportPreview();
