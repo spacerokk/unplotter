@@ -523,6 +523,33 @@ export class PathExtractor {
 
                     this.addCommand('Y', c3_1.x, c3_1.y, p4.x, p4.y);
                     break;
+
+                    case OPS.rectangle: {
+                        const rx = points[pointIndex++];
+                        const ry = points[pointIndex++];
+                        const rw = points[pointIndex++];
+                        const rh = points[pointIndex++];
+
+                        const rp1 = this.applyTransform(rx, ry, this.currentTransform);
+                        const rp2 = this.applyTransform(rx + rw, ry, this.currentTransform);
+                        const rp3 = this.applyTransform(rx + rw, ry + rh, this.currentTransform);
+                        const rp4 = this.applyTransform(rx, ry + rh, this.currentTransform);
+
+                        this.addCommand('M', rp1.x, rp1.y);
+                        this.addCommand('L', rp2.x, rp2.y);
+                        this.addCommand('Z');
+                        this.addCommand('M', rp2.x, rp2.y);
+                        this.addCommand('L', rp3.x, rp3.y);
+                        this.addCommand('Z');
+                        this.addCommand('M', rp3.x, rp3.y);
+                        this.addCommand('L', rp4.x, rp4.y);
+                        this.addCommand('Z');
+                        this.addCommand('M', rp4.x, rp4.y);
+                        this.addCommand('L', rp1.x, rp1.y);
+                        this.addCommand('Z');
+                        break;
+                    }
+
                 case OPS.closePath:
                     this.addCommand('Z');
                     break;
