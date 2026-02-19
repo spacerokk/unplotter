@@ -437,8 +437,15 @@ export class PathExtractor {
 
                 this.addCommand('M', rp1.x, rp1.y);
                 this.addCommand('L', rp2.x, rp2.y);
+                this.addCommand('Z');
+                this.addCommand('M', rp2.x, rp2.y);
                 this.addCommand('L', rp3.x, rp3.y);
+                this.addCommand('Z');
+                this.addCommand('M', rp3.x, rp3.y);
                 this.addCommand('L', rp4.x, rp4.y);
+                this.addCommand('Z');
+                this.addCommand('M', rp4.x, rp4.y);
+                this.addCommand('L', rp1.x, rp1.y);
                 this.addCommand('Z');
                 break;
 
