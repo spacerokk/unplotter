@@ -6,6 +6,15 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 
 ---
 
+## [1.3.0] - 2026-02-19
+
+### Fixed
+- Simplify calibration workflow.  Thanks spacerokk
+- Fix some UI update inconsistencies.  Thanks spacerokk
+- Update README to acknowledge support of log plots.
+
+---
+
 ## [1.2.1] - 2025-11-14
 
 ### Fixed
