@@ -6,6 +6,13 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 
 ---
 
+## [1.4.0] - 2026-02-19
+
+### Added
+- Improved support for rectangles as plot axes for calibration.
+
+---
+
 ## [1.3.0] - 2026-02-19
 
 ### Fixed
