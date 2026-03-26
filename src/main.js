@@ -26,6 +26,12 @@ class UnPlotApp {
         this.calibrationMode = false;
         this.pendingCalibration = null;
 
+        // 1:1 scale calibration state
+        this.equalScaleMode = false;
+        this.equalScaleAxis = 'x';      // which axis provides the scale
+        this.perpOriginMode = 'auto';   // 'auto' | 'select'
+        this.perpRefCurve = null;       // separately-clicked perp reference curve
+
         // Labeled curves management
         this.labeledCurves = [];
         this.selectedCurveForLabeling = null;
@@ -109,9 +115,34 @@ class UnPlotApp {
         this.resetCalibrationBtn = document.getElementById('resetCalibration');
         this.calibrationStatus = document.getElementById('calibrationStatus');
 
-        // New: log scale checkboxes
+        // Log scale checkboxes
         this.xLogScaleCheckbox = document.getElementById('xLogScale');
         this.yLogScaleCheckbox = document.getElementById('yLogScale');
+
+        // Calibration mode selector
+        this.calModeIndependentRadio = document.getElementById('calModeIndependent');
+        this.calModeEqualScaleRadio  = document.getElementById('calModeEqualScale');
+        this.independentCalPanel     = document.getElementById('independentCalPanel');
+        this.equalScalePanel         = document.getElementById('equalScalePanel');
+
+        // 1:1 scale controls
+        this.scaleFromXRadio         = document.getElementById('scaleFromX');
+        this.scaleFromYRadio         = document.getElementById('scaleFromY');
+        this.selectScaleRefBtn       = document.getElementById('selectScaleRefBtn');
+        this.equalScaleAxisLabelEl   = document.getElementById('equalScaleAxisLabel');
+        this.equalScaleAxisStatus    = document.getElementById('equalScaleAxisStatus');
+        this.equalScaleMinInput      = document.getElementById('equalScaleMin');
+        this.equalScaleMaxInput      = document.getElementById('equalScaleMax');
+        this.perpOriginHeaderEl      = document.getElementById('perpOriginHeader');
+        this.perpOriginAutoRadio     = document.getElementById('perpOriginAuto');
+        this.perpOriginSelectRadio   = document.getElementById('perpOriginSelect');
+        this.perpAutoAxisLabelEl     = document.getElementById('perpAutoAxisLabel');
+        this.perpDataValueInput      = document.getElementById('perpDataValue');
+        this.perpSelectControls      = document.getElementById('perpSelectControls');
+        this.selectPerpRefBtn        = document.getElementById('selectPerpRefBtn');
+        this.perpRefStatus           = document.getElementById('perpRefStatus');
+        this.perpSelectAxisLabelEl   = document.getElementById('perpSelectAxisLabel');
+        this.perpRefDataValueInput   = document.getElementById('perpRefDataValue');
 
         // Export elements
         this.exportSection = document.getElementById('exportSection');
@@ -164,15 +195,38 @@ class UnPlotApp {
             this.multiSelectCheckbox.addEventListener('change', () => this.toggleMultiSelectMode());
         }
 
-        // Calibration event listeners
+        // Calibration event listeners (independent mode only — equal-scale has its own buttons)
         this.startCalibrationBtn.addEventListener('click', () => this.startSequentialCalibration());
 
+        // Independent-mode value inputs
         this.xMinInput.addEventListener('change', () => this.updateCalibrationValue('x', 'start'));
         this.xMaxInput.addEventListener('change', () => this.updateCalibrationValue('x', 'end'));
         this.yMinInput.addEventListener('change', () => this.updateCalibrationValue('y', 'start'));
         this.yMaxInput.addEventListener('change', () => this.updateCalibrationValue('y', 'end'));
 
         this.resetCalibrationBtn.addEventListener('click', () => this.resetCalibration());
+
+        // Mode toggle
+        this.calModeIndependentRadio.addEventListener('change', () => this.toggleCalibrationMode(false));
+        this.calModeEqualScaleRadio.addEventListener('change',  () => this.toggleCalibrationMode(true));
+
+        // 1:1 scale axis choice
+        this.scaleFromXRadio.addEventListener('change', () => this.updateEqualScaleAxisChoice('x'));
+        this.scaleFromYRadio.addEventListener('change', () => this.updateEqualScaleAxisChoice('y'));
+
+        // 1:1 scale step buttons
+        this.selectScaleRefBtn.addEventListener('click', () => this.startEqualScaleCalibration());
+        this.selectPerpRefBtn.addEventListener('click',  () => this.startPerpRefSelection());
+
+        // 1:1 scale value inputs
+        this.equalScaleMinInput.addEventListener('change', () => this.updateEqualScaleCalibration());
+        this.equalScaleMaxInput.addEventListener('change', () => this.updateEqualScaleCalibration());
+
+        // Perpendicular origin
+        this.perpOriginAutoRadio.addEventListener('change',   () => this.updatePerpOriginMode('auto'));
+        this.perpOriginSelectRadio.addEventListener('change', () => this.updatePerpOriginMode('select'));
+        this.perpDataValueInput.addEventListener('change',    () => this.updateEqualScaleCalibration());
+        this.perpRefDataValueInput.addEventListener('change', () => this.updateEqualScaleCalibration());
 
         // New: log-scale change listeners
         if (this.xLogScaleCheckbox) {
@@ -414,45 +468,10 @@ class UnPlotApp {
 
     handleCurveSelection(detail) {
         if (this.calibrationMode && this.pendingCalibration) {
-            const curve = detail.curve;
-            const { axis } = this.pendingCalibration;
-
-            if (curve.points.length >= 2) {
-                // Pass the entire curve with all points to the calibrator
-                // The calibrator will extract min/max coordinates from all points
-                this.axisCalibrator.setCalibrationSegment(axis, curve);
-                this.updateCalibrationStatus(axis, true);
-
-                console.log(`${axis.toUpperCase()}-axis calibration path selected with ${curve.points.length} points`);
-            }
-
-            // Auto-advance from X to Y axis
-            if (axis === 'x' && !this.axisCalibrator.hasSegment('y')) {
-                this.pendingCalibration = { axis: 'y' };
-                this.axisCalibrator.startCalibration('y');
-                this.showCalibrationPrompt('Now click a line for the Y-axis');
-                this.checkCalibrationComplete();
-                return;
-            }
-
-            // Exit calibration mode
-            this.calibrationMode = false;
-            this.pendingCalibration = null;
-            this.canvas.style.cursor = 'default';
-
-            // Show prompt only if values still needed, otherwise hide it
-            if (axis === 'y' && !this.axisCalibrator.isCalibrated) {
-                this.showCalibrationPrompt('Now enter min/max values for each axis');
+            if (this.equalScaleMode) {
+                this.handleEqualScaleCalibrationCurve(detail.curve);
             } else {
-                this.hideCalibrationPrompt();
-            }
-
-            this.checkCalibrationComplete();
-
-            if (this.selectionMode) {
-                this.canvasOverlay.enableSelectionMode(true);
-            } else {
-                this.canvasOverlay.enableSelectionMode(false);
+                this.handleIndependentCalibrationCurve(detail);
             }
         } else {
             if (this.multiSelectMode) {
@@ -464,6 +483,69 @@ class UnPlotApp {
                 console.log(`Selected curve with ${detail.curve.points.length} points - enter a label to save it`);
                 this.curveLabelInput.focus();
             }
+        }
+    }
+
+    handleIndependentCalibrationCurve(detail) {
+        const curve = detail.curve;
+        const { axis } = this.pendingCalibration;
+
+        if (curve.points.length >= 2) {
+            this.axisCalibrator.setCalibrationSegment(axis, curve);
+            this.updateCalibrationStatus(axis, true);
+            console.log(`${axis.toUpperCase()}-axis calibration path selected with ${curve.points.length} points`);
+        }
+
+        // Auto-advance from X to Y axis
+        if (axis === 'x' && !this.axisCalibrator.hasSegment('y')) {
+            this.pendingCalibration = { axis: 'y' };
+            this.axisCalibrator.startCalibration('y');
+            this.showCalibrationPrompt('Now click a line for the Y-axis');
+            this.checkCalibrationComplete();
+            return;
+        }
+
+        this.calibrationMode = false;
+        this.pendingCalibration = null;
+        this.canvas.style.cursor = 'default';
+
+        if (axis === 'y' && !this.axisCalibrator.isCalibrated) {
+            this.showCalibrationPrompt('Now enter min/max values for each axis');
+        } else {
+            this.hideCalibrationPrompt();
+        }
+
+        this.checkCalibrationComplete();
+        this._restoreSelectionMode();
+    }
+
+    handleEqualScaleCalibrationCurve(curve) {
+        const step = this.pendingCalibration.step;
+
+        if (step === 'scale') {
+            this.axisCalibrator.setCalibrationSegment(this.equalScaleAxis, curve);
+            this.equalScaleAxisStatus.textContent = '✓';
+            this.equalScaleAxisStatus.style.color = '#4CAF50';
+            console.log(`1:1 scale reference (${this.equalScaleAxis.toUpperCase()}) selected with ${curve.points.length} points`);
+        } else if (step === 'perp') {
+            this.perpRefCurve = curve;
+            this.perpRefStatus.textContent = '✓';
+            this.perpRefStatus.style.color = '#4CAF50';
+            console.log(`Perpendicular origin reference selected with ${curve.points.length} points`);
+        }
+
+        this.calibrationMode = false;
+        this.pendingCalibration = null;
+        this.hideCalibrationPrompt();
+        this.updateEqualScaleCalibration();
+        this._restoreSelectionMode();
+    }
+
+    _restoreSelectionMode() {
+        if (this.selectionMode) {
+            this.canvasOverlay.enableSelectionMode(true);
+        } else {
+            this.canvasOverlay.enableSelectionMode(false);
         }
     }
 
@@ -686,6 +768,111 @@ class UnPlotApp {
         this.canvas.style.cursor = 'crosshair';
     }
 
+    // ── 1:1 scale calibration ──────────────────────────────────────────────
+
+    toggleCalibrationMode(isEqualScale) {
+        this.equalScaleMode = isEqualScale;
+        this.independentCalPanel.style.display = isEqualScale ? 'none' : 'block';
+        this.equalScalePanel.style.display     = isEqualScale ? 'block' : 'none';
+        this.resetCalibration();
+    }
+
+    updateEqualScaleAxisChoice(axis) {
+        this.equalScaleAxis = axis;
+        const perpAxis = axis === 'x' ? 'y' : 'x';
+
+        // Update labels
+        this.equalScaleAxisLabelEl.textContent  = axis.toUpperCase();
+        this.perpOriginHeaderEl.textContent     = perpAxis.toUpperCase() + ' origin';
+        this.perpAutoAxisLabelEl.textContent    = perpAxis.toUpperCase();
+        this.perpSelectAxisLabelEl.textContent  = perpAxis.toUpperCase();
+        this.equalScaleMinInput.placeholder     = axis.toUpperCase() + ' Min';
+        this.equalScaleMaxInput.placeholder     = axis.toUpperCase() + ' Max';
+
+        // Reset so stale calibration doesn't carry over
+        this.axisCalibrator.reset();
+        this.perpRefCurve = null;
+        this.equalScaleAxisStatus.textContent = '○';
+        this.equalScaleAxisStatus.style.color = '#999';
+        this.perpRefStatus.textContent = '○';
+        this.perpRefStatus.style.color = '#999';
+        this.equalScaleMinInput.value = '';
+        this.equalScaleMaxInput.value = '';
+        this.checkCalibrationComplete();
+    }
+
+    startEqualScaleCalibration() {
+        this.calibrationMode = true;
+        this.pendingCalibration = { step: 'scale' };
+        this.showCalibrationPrompt(`Click a line representing the ${this.equalScaleAxis.toUpperCase()}-axis`);
+        if (this.canvasOverlay) {
+            this.canvasOverlay.enableSingleSelectionMode(true);
+        }
+    }
+
+    updatePerpOriginMode(mode) {
+        this.perpOriginMode = mode;
+        if (this.perpSelectControls) {
+            this.perpSelectControls.style.display = mode === 'select' ? 'flex' : 'none';
+        }
+        this.updateEqualScaleCalibration();
+    }
+
+    startPerpRefSelection() {
+        this.calibrationMode = true;
+        this.pendingCalibration = { step: 'perp' };
+        const perpAxis = this.equalScaleAxis === 'x' ? 'y' : 'x';
+        this.showCalibrationPrompt(`Click a ${perpAxis.toUpperCase()}-axis reference line for the origin`);
+        if (this.canvasOverlay) {
+            this.canvasOverlay.enableSingleSelectionMode(true);
+        }
+    }
+
+    updateEqualScaleCalibration() {
+        if (!this.equalScaleMode) return;
+
+        const scaleAxis = this.equalScaleAxis;
+        const perpAxis  = scaleAxis === 'x' ? 'y' : 'x';
+
+        // Push scale-axis data values into the calibrator
+        const minVal = parseFloat(this.equalScaleMinInput.value);
+        const maxVal = parseFloat(this.equalScaleMaxInput.value);
+        if (!isNaN(minVal)) this.axisCalibrator.setCalibrationValue(scaleAxis, 'start', minVal);
+        if (!isNaN(maxVal)) this.axisCalibrator.setCalibrationValue(scaleAxis, 'end',   maxVal);
+
+        // Can't synthesise perpendicular axis until scale axis is fully calibrated
+        if (!this.axisCalibrator.isAxisCalibrated(scaleAxis)) {
+            this.checkCalibrationComplete();
+            return;
+        }
+
+        const scaleSegment = this.axisCalibrator.calibrationSegments[scaleAxis + 'Axis'];
+
+        if (this.perpOriginMode === 'auto') {
+            const perpDataVal = parseFloat(this.perpDataValueInput.value);
+            if (isNaN(perpDataVal)) { this.checkCalibrationComplete(); return; }
+
+            // Pixel reference is the scale curve's extent in the perpendicular direction
+            const perpPixelRef = (perpAxis === 'y') ? scaleSegment.y1 : scaleSegment.x1;
+            this.axisCalibrator.synthesizeEqualScaleAxis(perpAxis, perpPixelRef, perpDataVal);
+
+        } else {
+            if (!this.perpRefCurve) { this.checkCalibrationComplete(); return; }
+
+            const perpDataVal = parseFloat(this.perpRefDataValueInput.value);
+            if (isNaN(perpDataVal)) { this.checkCalibrationComplete(); return; }
+
+            // Pixel reference is the min-coordinate of the separately selected reference curve
+            const refSeg = this.axisCalibrator.extractMinMaxFromPoints(this.perpRefCurve.points);
+            const perpPixelRef = (perpAxis === 'y') ? refSeg.y1 : refSeg.x1;
+            this.axisCalibrator.synthesizeEqualScaleAxis(perpAxis, perpPixelRef, perpDataVal);
+        }
+
+        this.checkCalibrationComplete();
+    }
+
+    // ── End 1:1 scale calibration ──────────────────────────────────────────
+
     showCalibrationPrompt(message) {
         if (this.calibrationPrompt) {
             this.calibrationPrompt.textContent = message;
@@ -736,6 +923,11 @@ class UnPlotApp {
 
             this.exportSection.style.display = 'block';
             this.updateExportPreview();
+        } else if (this.equalScaleMode) {
+            const scaleAxis = this.equalScaleAxis;
+            const scaleCalibrated = this.axisCalibrator.isAxisCalibrated(scaleAxis);
+            const scaleStatus = scaleCalibrated ? '✅' : '⏳';
+            this.calibrationStatus.innerHTML = `<span class="status-text">Scale ref: ${scaleStatus} | Origin: ⏳</span>`;
         } else {
             const xStatus = status.xAxisCalibrated ? '✅' : '⏳';
             const yStatus = status.yAxisCalibrated ? '✅' : '⏳';
@@ -823,6 +1015,24 @@ class UnPlotApp {
                 element.style.color = '#999';
             }
         });
+
+        // Reset equal-scale state
+        this.perpRefCurve = null;
+        this.perpOriginMode = 'auto';
+        if (this.perpOriginAutoRadio) this.perpOriginAutoRadio.checked = true;
+        if (this.perpSelectControls)  this.perpSelectControls.style.display = 'none';
+        if (this.equalScaleAxisStatus) {
+            this.equalScaleAxisStatus.textContent = '○';
+            this.equalScaleAxisStatus.style.color = '#999';
+        }
+        if (this.perpRefStatus) {
+            this.perpRefStatus.textContent = '○';
+            this.perpRefStatus.style.color = '#999';
+        }
+        if (this.equalScaleMinInput)    this.equalScaleMinInput.value = '';
+        if (this.equalScaleMaxInput)    this.equalScaleMaxInput.value = '';
+        if (this.perpDataValueInput)    this.perpDataValueInput.value = '0';
+        if (this.perpRefDataValueInput) this.perpRefDataValueInput.value = '';
 
         this.calibrationStatus.innerHTML = '<span class="status-text">Not calibrated</span>';
         this.exportSection.style.display = 'none';

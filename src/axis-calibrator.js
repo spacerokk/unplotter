@@ -308,6 +308,59 @@ export class AxisCalibrator {
         };
     }
 
+    /**
+     * Synthesize the calibration for the perpendicular axis from the 1:1 scale constraint.
+     *
+     * perpAxis       - 'x' or 'y': the axis whose calibration is being synthesized
+     * perpPixelRef   - axis-space coordinate of the reference point on perpAxis
+     * perpDataValue  - data value at that reference point
+     *
+     * The scale (data units per pixel) is taken from the already-calibrated opposite axis
+     * and applied identically to perpAxis.
+     */
+    synthesizeEqualScaleAxis(perpAxis, perpPixelRef, perpDataValue) {
+        const scaleAxis = perpAxis === 'y' ? 'x' : 'y';
+        const scaleAxisKey = scaleAxis === 'x' ? 'xAxis' : 'yAxis';
+        const perpAxisKey  = perpAxis  === 'x' ? 'xAxis' : 'yAxis';
+
+        const scaleSegment = this.calibrationSegments[scaleAxisKey];
+        const scaleValues  = this.calibrationValues[scaleAxisKey];
+
+        if (!scaleSegment || scaleValues.min === null || scaleValues.max === null) {
+            return false;
+        }
+
+        // Pixel span and data span from the scale axis — applied equally to perpAxis
+        const pixelSpan = (scaleAxis === 'x')
+            ? (scaleSegment.x2 - scaleSegment.x1)
+            : (scaleSegment.y2 - scaleSegment.y1);
+        const dataSpan = scaleValues.max - scaleValues.min;
+
+        // Build a virtual segment whose relevant extent equals the scale-axis extent
+        if (perpAxis === 'y') {
+            this.calibrationSegments[perpAxisKey] = {
+                x1: scaleSegment.x1, y1: perpPixelRef,
+                x2: scaleSegment.x2, y2: perpPixelRef + pixelSpan
+            };
+        } else {
+            this.calibrationSegments[perpAxisKey] = {
+                x1: perpPixelRef,    y1: scaleSegment.y1,
+                x2: perpPixelRef + pixelSpan, y2: scaleSegment.y2
+            };
+        }
+
+        this.calibrationValues[perpAxisKey] = {
+            min: perpDataValue,
+            max: perpDataValue + dataSpan
+        };
+
+        // 1:1 mode is always linear
+        this.scaleType[perpAxisKey] = 'linear';
+
+        this.checkIfFullyCalibrated();
+        return this.isCalibrated;
+    }
+
     reset() {
         this.calibrationSegments = {
             xAxis: null,

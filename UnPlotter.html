@@ -152,38 +152,94 @@
                     <div class="calibration-section" id="calibrationSection" style="display: none;">
                         <h3>Axis Calibration</h3>
 
-                        <div class="calibration-start">
-                            <button id="startCalibration" class="btn btn-primary">Start Calibration</button>
+                        <!-- Mode selector -->
+                        <div class="calibration-mode-selector">
+                            <label><input type="radio" name="calibrationMode" id="calModeIndependent" value="independent" checked> Independent axes</label>
+                            <label><input type="radio" name="calibrationMode" id="calModeEqualScale" value="equalScale"> 1:1 scale</label>
+                        </div>
+
+                        <!-- Calibration prompt -->
+                        <div class="calibration-prompt-area">
                             <span id="calibrationPrompt" class="calibration-prompt"></span>
                         </div>
 
-                        <div class="calibration-grid">
-                            <div class="axis-calibration">
-                                <div class="calibration-points">
-                                    <div class="point-input">
-                                        <h4>X</h4>
-                                        <span id="xAxisStatus" class="status-indicator">○</span>
-                                        <input type="number" id="xMinValue" placeholder="X Min" step="any">
-                                        <input type="number" id="xMaxValue" placeholder="X Max" step="any">
-                                        <label style="margin-left: 0.75rem;">
-                                            <input type="checkbox" id="xLogScale">
-                                            log
-                                        </label>
+                        <!-- Independent axes panel -->
+                        <div id="independentCalPanel">
+                            <!-- Start button -->
+                            <div class="calibration-start">
+                                <button id="startCalibration" class="btn btn-primary">Start Calibration</button>
+                            </div>
+                            <div class="calibration-grid">
+                                <div class="axis-calibration">
+                                    <div class="calibration-points">
+                                        <div class="point-input">
+                                            <h4>X</h4>
+                                            <span id="xAxisStatus" class="status-indicator">○</span>
+                                            <input type="number" id="xMinValue" placeholder="X Min" step="any">
+                                            <input type="number" id="xMaxValue" placeholder="X Max" step="any">
+                                            <label style="margin-left: 0.75rem;">
+                                                <input type="checkbox" id="xLogScale"> log
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="axis-calibration">
+                                    <div class="calibration-points">
+                                        <div class="point-input">
+                                            <h4>Y</h4>
+                                            <span id="yAxisStatus" class="status-indicator">○</span>
+                                            <input type="number" id="yMinValue" placeholder="Y Min" step="any">
+                                            <input type="number" id="yMaxValue" placeholder="Y Max" step="any">
+                                            <label>
+                                                <input type="checkbox" id="yLogScale"> log
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="axis-calibration">
-                                <div class="calibration-points">
-                                    <div class="point-input">
-                                        <h4>Y</h4>
-                                        <span id="yAxisStatus" class="status-indicator">○</span>
-                                        <input type="number" id="yMinValue" placeholder="Y Min" step="any">
-                                        <input type="number" id="yMaxValue" placeholder="Y Max" step="any">
-                                        <label>
-                                            <input type="checkbox" id="yLogScale">
-                                            log
-                                        </label>
+                        <!-- 1:1 scale panel -->
+                        <div id="equalScalePanel" style="display: none;">
+
+                            <!-- Scale axis selector -->
+                            <div class="equal-scale-axis-selector">
+                                Scale from:
+                                <label><input type="radio" name="scaleAxis" id="scaleFromX" value="x" checked> X-axis line</label>
+                                <label><input type="radio" name="scaleAxis" id="scaleFromY" value="y"> Y-axis line</label>
+                            </div>
+
+                            <!-- Step 1: scale reference line + data range -->
+                            <div class="equal-scale-step">
+                                <button id="selectScaleRefBtn" class="btn btn-primary">1. Select Scale Reference Line</button>
+                                <span id="equalScaleAxisStatus" class="status-indicator">○</span>
+                                <span id="equalScaleAxisLabel">X</span> range:
+                                <input type="number" id="equalScaleMin" placeholder="Min" step="any" class="perp-value-input">
+                                to
+                                <input type="number" id="equalScaleMax" placeholder="Max" step="any" class="perp-value-input">
+                            </div>
+
+                            <!-- Perpendicular-axis origin -->
+                            <div class="perp-origin-section">
+                                <strong id="perpOriginHeader">Y origin</strong>
+                                <div class="perp-origin-row">
+                                    <label>
+                                        <input type="radio" name="perpOrigin" id="perpOriginAuto" value="auto" checked>
+                                        Use scale line position:
+                                        <span id="perpAutoAxisLabel">Y</span> =
+                                        <input type="number" id="perpDataValue" value="0" step="any" class="perp-value-input">
+                                    </label>
+                                </div>
+                                <div class="perp-origin-row">
+                                    <label>
+                                        <input type="radio" name="perpOrigin" id="perpOriginSelect" value="select">
+                                        Select reference line
+                                    </label>
+                                    <div class="perp-select-controls" id="perpSelectControls" style="display: none;">
+                                        <button id="selectPerpRefBtn" class="btn">2. Select Origin Line</button>
+                                        <span id="perpRefStatus" class="status-indicator">○</span>
+                                        <span id="perpSelectAxisLabel">Y</span> =
+                                        <input type="number" id="perpRefDataValue" step="any" class="perp-value-input">
                                     </div>
                                 </div>
                             </div>

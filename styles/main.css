@@ -490,6 +490,23 @@ header h1 {
     font-size: 0.9rem;
 }
 
+.calibration-prompt-area {
+    min-height: 1.6rem;
+    margin-bottom: 0.5rem;
+}
+
+.calibration-prompt {
+    display: none;
+    color: #e65100;
+    font-weight: 600;
+    font-style: italic;
+    font-size: 0.95rem;
+    background: #fff3e0;
+    border: 1px solid #ffb74d;
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem;
+}
+
 .calibration-start {
     display: flex;
     align-items: center;
@@ -497,11 +514,22 @@ header h1 {
     margin-bottom: 1rem;
 }
 
-.calibration-prompt {
-    color: #ff9800;
-    font-weight: 500;
-    font-style: italic;
-    font-size: 1.1rem;
+.equal-scale-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.9rem;
+}
+
+.perp-select-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.3rem;
+    flex-wrap: wrap;
+    font-size: 0.9rem;
 }
 
 .calibration-grid {
@@ -615,6 +643,55 @@ header h1 {
 .calibration-status .status-text.success {
     color: #28a745;
     font-weight: 600;
+}
+
+/* Calibration mode selector and 1:1 scale panel */
+.calibration-mode-selector {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.equal-scale-axis-selector {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.perp-origin-section {
+    background: #f0f0f0;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 0.6rem 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.perp-origin-section strong {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: #495057;
+}
+
+.perp-origin-row {
+    margin-top: 0.35rem;
+}
+
+.perp-value-input {
+    width: 5em;
+    padding: 0.25rem 0.4rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin-left: 0.25rem;
+}
+
+.perp-value-input:focus {
+    outline: none;
+    border-color: #007bff;
 }
 
 /* Export Section */
