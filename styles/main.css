@@ -690,6 +690,69 @@ header h1 {
     overflow-y: auto;
 }
 
+/* Thumbnail Sidebar */
+.thumbnail-sidebar {
+    width: 130px;
+    min-width: 130px;
+    background: #3a3a3a;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    gap: 6px;
+    border-right: 1px solid #222;
+}
+
+.thumbnail-item {
+    width: calc(100% - 20px);
+    flex-shrink: 0;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 3px;
+    border: 2px solid transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: border-color 0.15s;
+}
+
+.thumbnail-item:hover {
+    border-color: #888;
+}
+
+.thumbnail-item.active {
+    border-color: #3498db;
+}
+
+.thumbnail-canvas {
+    display: block;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.thumbnail-page-num {
+    color: #ccc;
+    font-size: 0.7rem;
+    text-align: center;
+    user-select: none;
+}
+
+.thumbnail-resize-handle {
+    width: 5px;
+    background: #ddd;
+    cursor: ew-resize;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.thumbnail-resize-handle:hover,
+.thumbnail-resize-handle.dragging {
+    background: #3498db;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1024px) {
     .content-wrapper {

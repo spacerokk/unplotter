@@ -57,6 +57,13 @@ class UnPlotApp {
         this.pageNum = document.getElementById('pageNum');
         this.pageCount = document.getElementById('pageCount');
 
+        // Thumbnail sidebar
+        this.thumbnailSidebar = document.getElementById('thumbnailSidebar');
+        this.thumbnailResizeHandle = document.getElementById('thumbnailResizeHandle');
+        this.thumbnailToggleBtn = document.getElementById('thumbnailToggle');
+        this.thumbnailObserver = null;
+        this.isThumbnailResizing = false;
+
         // Navigation buttons
         this.prevPageBtn = document.getElementById('prevPage');
         this.nextPageBtn = document.getElementById('nextPage');
@@ -115,6 +122,7 @@ class UnPlotApp {
         // Event listeners
         this.uploadBtn.addEventListener('click', () => this.fileInput.click());
         this.fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
+        this.thumbnailToggleBtn.addEventListener('click', () => this.toggleThumbnailSidebar());
         this.prevPageBtn.addEventListener('click', () => this.changePage(-1));
         this.nextPageBtn.addEventListener('click', () => this.changePage(1));
         this.pageNum.addEventListener('keydown', (e) => {
@@ -130,10 +138,15 @@ class UnPlotApp {
         this.rotateClockwiseBtn.addEventListener('click', () => this.rotateView(90));
         this.rotateCounterClockwiseBtn.addEventListener('click', () => this.rotateView(-90));
 
-        // Resize handle
+        // Right-panel resize handle
         this.resizeHandle.addEventListener('mousedown', (e) => this.startResize(e));
         document.addEventListener('mousemove', (e) => this.doResize(e));
         document.addEventListener('mouseup', () => this.stopResize());
+
+        // Thumbnail sidebar resize handle
+        this.thumbnailResizeHandle.addEventListener('mousedown', (e) => this.startThumbnailResize(e));
+        document.addEventListener('mousemove', (e) => this.doThumbnailResize(e));
+        document.addEventListener('mouseup', () => this.stopThumbnailResize());
 
         // Pan/drag scrolling on canvas container
         this.canvasContainer.addEventListener('mousedown', (e) => this.startPan(e));
@@ -242,6 +255,36 @@ class UnPlotApp {
         }
     }
 
+    startThumbnailResize(e) {
+        this.isThumbnailResizing = true;
+        this.thumbnailResizeHandle.classList.add('dragging');
+        e.preventDefault();
+    }
+
+    doThumbnailResize(e) {
+        if (!this.isThumbnailResizing) return;
+        const contentWrapper = this.thumbnailSidebar.parentElement;
+        const newWidth = e.clientX - contentWrapper.getBoundingClientRect().left;
+        if (newWidth >= 80 && newWidth <= 400) {
+            this.thumbnailSidebar.style.width = newWidth + 'px';
+            this.thumbnailSidebar.style.minWidth = newWidth + 'px';
+        }
+    }
+
+    stopThumbnailResize() {
+        if (this.isThumbnailResizing) {
+            this.isThumbnailResizing = false;
+            this.thumbnailResizeHandle.classList.remove('dragging');
+            this.resizeThumbnails();
+        }
+    }
+
+    resizeThumbnails() {
+        const scrollTop = this.thumbnailSidebar.scrollTop;
+        this.generateThumbnails();
+        this.thumbnailSidebar.scrollTop = scrollTop;
+    }
+
     async handleFileUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -259,13 +302,17 @@ class UnPlotApp {
             this.pageCount.textContent = this.totalPages;
 
             // Show controls and side panel
+            this.thumbnailToggleBtn.style.display = 'inline-flex';
+            this.thumbnailSidebar.style.display = 'flex';
+            this.thumbnailResizeHandle.style.display = 'block';
             this.navControls.style.display = 'flex';
             this.zoomControls.style.display = 'flex';
             this.rotationControls.style.display = 'flex';
             this.sidePanel.style.display = 'block';
 
-            // Render first page
+            // Render first page, then populate thumbnails
             await this.renderCurrentPage();
+            this.generateThumbnails();
 
             console.log(`PDF loaded successfully: ${this.totalPages} pages`);
         } else {
@@ -287,6 +334,7 @@ class UnPlotApp {
 
             await this.extractPathsFromCurrentPage();
             this.setupCanvasOverlay(result.page);
+            this.updateThumbnailHighlight();
         } else {
             console.error(`Error rendering page: ${result.error}`);
         }
@@ -782,20 +830,15 @@ class UnPlotApp {
         console.log('Calibration reset');
     }
 
-    async changePage(delta) {
-        const newPage = this.currentPageNum + delta;
-
-        if (newPage < 1 || newPage > this.totalPages) {
-            return;
-        }
-
-        this.currentPageNum = newPage;
-
-        if (this.selectionMode) {
-            this.toggleSelectionMode();
-        }
-
+    async goToPage(pageNum) {
+        if (pageNum < 1 || pageNum > this.totalPages || pageNum === this.currentPageNum) return;
+        this.currentPageNum = pageNum;
+        if (this.selectionMode) this.toggleSelectionMode();
         await this.renderCurrentPage();
+    }
+
+    async changePage(delta) {
+        await this.goToPage(this.currentPageNum + delta);
     }
 
     async jumpToPage() {
@@ -804,15 +847,82 @@ class UnPlotApp {
             this.pageNum.value = this.currentPageNum;
             return;
         }
-        if (val === this.currentPageNum) return;
+        await this.goToPage(val);
+    }
 
-        this.currentPageNum = val;
+    toggleThumbnailSidebar() {
+        const visible = this.thumbnailSidebar.style.display !== 'none';
+        this.thumbnailSidebar.style.display = visible ? 'none' : 'flex';
+        this.thumbnailResizeHandle.style.display = visible ? 'none' : 'block';
+    }
 
-        if (this.selectionMode) {
-            this.toggleSelectionMode();
+    generateThumbnails() {
+        if (this.thumbnailObserver) {
+            this.thumbnailObserver.disconnect();
+            this.thumbnailObserver = null;
         }
+        this.thumbnailSidebar.innerHTML = '';
 
-        await this.renderCurrentPage();
+        const THUMB_WIDTH = Math.max(60, this.thumbnailSidebar.clientWidth - 30);
+
+        this.thumbnailObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !entry.target.dataset.rendered) {
+                    entry.target.dataset.rendered = 'true';
+                    const pageNum = parseInt(entry.target.dataset.page);
+                    const canvas = entry.target.querySelector('canvas');
+                    this.renderThumbnail(pageNum, canvas, THUMB_WIDTH);
+                }
+            });
+        }, { root: this.thumbnailSidebar, rootMargin: '100px', threshold: 0.01 });
+
+        for (let i = 1; i <= this.totalPages; i++) {
+            const item = document.createElement('div');
+            item.className = 'thumbnail-item';
+            item.dataset.page = i;
+            if (i === this.currentPageNum) item.classList.add('active');
+
+            const canvas = document.createElement('canvas');
+            canvas.className = 'thumbnail-canvas';
+
+            const label = document.createElement('div');
+            label.className = 'thumbnail-page-num';
+            label.textContent = i;
+
+            item.appendChild(canvas);
+            item.appendChild(label);
+            item.addEventListener('click', () => this.goToPage(i));
+
+            this.thumbnailSidebar.appendChild(item);
+            this.thumbnailObserver.observe(item);
+        }
+    }
+
+    async renderThumbnail(pageNum, canvas, displayWidth) {
+        try {
+            const page = await this.pdfLoader.pdfDocument.getPage(pageNum);
+            const unscaled = page.getViewport({ scale: 1 });
+            const scale = displayWidth / unscaled.width;
+            const viewport = page.getViewport({ scale });
+
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = Math.round(viewport.height) + 'px';
+
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        } catch (e) {
+            console.error(`Thumbnail render error (page ${pageNum}):`, e);
+        }
+    }
+
+    updateThumbnailHighlight() {
+        if (!this.thumbnailSidebar) return;
+        this.thumbnailSidebar.querySelectorAll('.thumbnail-item').forEach(item => {
+            item.classList.toggle('active', parseInt(item.dataset.page) === this.currentPageNum);
+        });
+        const active = this.thumbnailSidebar.querySelector('.thumbnail-item.active');
+        if (active) active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
     async changeZoom(delta) {

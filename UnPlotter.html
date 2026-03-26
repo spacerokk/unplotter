@@ -75,6 +75,10 @@
                 </button>
                 <span class="file-info" id="fileInfo">No file loaded</span>
 
+                <button id="thumbnailToggle" class="btn" style="display: none;" title="Toggle page thumbnails">
+                    ☰ Pages
+                </button>
+
                 <div class="nav-controls" id="navControls" style="display: none;">
                     <button id="prevPage" class="btn">⇦</button>
                     <span class="page-info">
@@ -96,6 +100,9 @@
             </div>
 
             <div class="content-wrapper">
+                <div class="thumbnail-sidebar" id="thumbnailSidebar" style="display: none;"></div>
+                <div class="thumbnail-resize-handle" id="thumbnailResizeHandle" style="display: none;"></div>
+
                 <div class="canvas-container" id="canvasContainer">
                     <div class="canvas-placeholder">
                         <p>👆 Load a PDF file to get started</p>
