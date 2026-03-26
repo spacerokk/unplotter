@@ -117,6 +117,11 @@ class UnPlotApp {
         this.fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
         this.prevPageBtn.addEventListener('click', () => this.changePage(-1));
         this.nextPageBtn.addEventListener('click', () => this.changePage(1));
+        this.pageNum.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { this.jumpToPage(); this.pageNum.blur(); }
+            else if (e.key === 'Escape') { this.pageNum.value = this.currentPageNum; this.pageNum.blur(); }
+        });
+        this.pageNum.addEventListener('blur', () => this.jumpToPage());
         this.zoomInBtn.addEventListener('click', () => this.changeZoom(0.25));
         this.zoomOutBtn.addEventListener('click', () => this.changeZoom(-0.25));
         this.toggleSelectionBtn.addEventListener('click', () => this.toggleSelectionMode());
@@ -276,7 +281,7 @@ class UnPlotApp {
 
         if (result.success) {
             this.canvas.classList.add('loaded');
-            this.pageNum.textContent = this.currentPageNum;
+            this.pageNum.value = this.currentPageNum;
             this.updateNavigationButtons();
             console.log(`Page ${this.currentPageNum} rendered. Canvas size: ${result.width}x${result.height}px`);
 
@@ -785,6 +790,23 @@ class UnPlotApp {
         }
 
         this.currentPageNum = newPage;
+
+        if (this.selectionMode) {
+            this.toggleSelectionMode();
+        }
+
+        await this.renderCurrentPage();
+    }
+
+    async jumpToPage() {
+        const val = parseInt(this.pageNum.value, 10);
+        if (isNaN(val) || val < 1 || val > this.totalPages) {
+            this.pageNum.value = this.currentPageNum;
+            return;
+        }
+        if (val === this.currentPageNum) return;
+
+        this.currentPageNum = val;
 
         if (this.selectionMode) {
             this.toggleSelectionMode();
