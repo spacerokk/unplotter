@@ -117,7 +117,13 @@
                     <!-- Curve Labeling Section -->
                     <div class="labeling-section" id="labelingSection">
                         <h3>Curves</h3>
-                        <p class="labeling-instruction">Click on a curve to select it, then enter a label to add it.</p>
+                        <p class="labeling-instruction" id="labelingInstruction">Click on a curve to select it, then enter a label to add it.</p>
+                        <div>
+                            <label>
+                                <input type="checkbox" id="multiSelectMode">
+                                Multi-select: add multiple curves to the same dataset
+                            </label>
+                        </div>
 
                         <div class="label-input-group">
                             <input type="text" id="curveLabel" placeholder="Enter curve label (e.g., 'Temperature', 'Pressure')" />

@@ -15,7 +15,9 @@ export class CanvasOverlay {
         this.selectedCurve = null;
         this.hoveredCurve = null;
         this.selectionMode = false;
-        this.highlightedCurveIndex = null;
+        this.multiSelectMode = false;
+        this.multiSelectedIndices = new Set();
+        this.highlightedCurveIndices = new Set();
         this.scale = 1.0;
         this.viewport = null;
         this.rotation = 0; // Add rotation tracking
@@ -196,18 +198,44 @@ export class CanvasOverlay {
     handleClick() {
         if (!this.selectionMode || !this.hoveredCurve) return;
 
-        // Always single selection
-        this.selectedCurve = this.hoveredCurve;
+        if (this.multiSelectMode) {
+            this.multiSelectedIndices.add(this.hoveredCurve.curveIndex);
+        } else {
+            this.selectedCurve = this.hoveredCurve;
+        }
 
         this.redraw();
 
         // Dispatch custom event
         const event = new CustomEvent('curveSelected', {
             detail: {
-                curve: this.selectedCurve
+                curve: this.hoveredCurve
             }
         });
         this.overlayCanvas.dispatchEvent(event);
+    }
+
+    setMultiSelectMode(enabled) {
+        this.multiSelectMode = enabled;
+        if (!enabled) {
+            this.multiSelectedIndices.clear();
+        }
+        this.redraw();
+    }
+
+    addMultiSelectedIndex(index) {
+        this.multiSelectedIndices.add(index);
+        this.redraw();
+    }
+
+    removeMultiSelectedIndex(index) {
+        this.multiSelectedIndices.delete(index);
+        this.redraw();
+    }
+
+    clearMultiSelection() {
+        this.multiSelectedIndices.clear();
+        this.redraw();
     }
 
     distanceToCurve(px, py, curve) {
@@ -254,12 +282,21 @@ export class CanvasOverlay {
     }
 
     highlightCurveByIndex(curveIndex) {
-        this.highlightedCurveIndex = curveIndex;
+        this.highlightedCurveIndices = new Set([curveIndex]);
         this.redraw();
     }
 
+    setHighlightedCurveIndices(indices) {
+        this.highlightedCurveIndices = new Set(indices);
+        this.redraw();
+    }
+
+    getMultiSelectedIndices() {
+        return this.multiSelectedIndices;
+    }
+
     clearHighlight() {
-        this.highlightedCurveIndex = null;
+        this.highlightedCurveIndices.clear();
         this.redraw();
     }
 
@@ -272,11 +309,12 @@ export class CanvasOverlay {
 
         // Draw all curves
         curves.forEach((curve, index) => {
-            const isSelected = this.selectedCurve && this.selectedCurve.curveIndex === index;
+            const isSelected = !this.multiSelectMode && this.selectedCurve && this.selectedCurve.curveIndex === index;
+            const isMultiSelected = this.multiSelectMode && this.multiSelectedIndices.has(index);
             const isHovered = this.hoveredCurve && this.hoveredCurve.curveIndex === index;
-            const isHighlighted = this.highlightedCurveIndex === index;
+            const isHighlighted = this.highlightedCurveIndices.has(index);
 
-            if (isSelected || isHighlighted) {
+            if (isSelected || isMultiSelected || isHighlighted) {
                 this.drawCurve(curve, true);
             } else if (isHovered) {
                 this.overlayContext.strokeStyle = 'rgba(255, 165, 0, 0.8)';
@@ -287,9 +325,12 @@ export class CanvasOverlay {
             }
         });
 
-        // Draw endpoints for selected or highlighted curve
-        const curveToMark = this.selectedCurve || 
-                           (this.highlightedCurveIndex !== null ? curves[this.highlightedCurveIndex] : null);
+        // Draw endpoints for selected or highlighted curve (single-select mode only)
+        const highlightedIndex = this.highlightedCurveIndices.size === 1
+            ? [...this.highlightedCurveIndices][0] : null;
+        const curveToMark = this.multiSelectMode ? null :
+                           (this.selectedCurve ||
+                           (highlightedIndex !== null ? curves[highlightedIndex] : null));
         
         if (curveToMark && curveToMark.points && curveToMark.points.length > 0) {
             this.overlayContext.fillStyle = 'rgba(255, 0, 0, 0.8)';
@@ -317,7 +358,8 @@ export class CanvasOverlay {
     clearSelection() {
         this.selectedCurve = null;
         this.hoveredCurve = null;
-        this.highlightedCurveIndex = null;
+        this.highlightedCurveIndices.clear();
+        // multiSelectedIndices is managed separately via clearMultiSelection()
         this.redraw();
     }
 

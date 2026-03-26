@@ -29,6 +29,7 @@ class UnPlotApp {
         // Labeled curves management
         this.labeledCurves = [];
         this.selectedCurveForLabeling = null;
+        this.multiSelectMode = false;
 
         // Resize panel
         this.isResizing = false;
@@ -81,6 +82,8 @@ class UnPlotApp {
 
         // Labeling elements
         this.labelingSection = document.getElementById('labelingSection');
+        this.labelingInstruction = document.getElementById('labelingInstruction');
+        this.multiSelectCheckbox = document.getElementById('multiSelectMode');
         this.curveLabelInput = document.getElementById('curveLabel');
         this.saveCurveLabelBtn = document.getElementById('saveCurveLabel');
         this.curveList = document.getElementById('curveList');
@@ -139,6 +142,9 @@ class UnPlotApp {
             if (e.key === 'Enter') this.saveLabeledCurve();
         });
         this.deleteAllLabelsBtn.addEventListener('click', () => this.deleteAllLabels());
+        if (this.multiSelectCheckbox) {
+            this.multiSelectCheckbox.addEventListener('change', () => this.toggleMultiSelectMode());
+        }
 
         // Calibration event listeners
         this.startCalibrationBtn.addEventListener('click', () => this.startSequentialCalibration());
@@ -318,6 +324,10 @@ class UnPlotApp {
         this.canvasOverlay.setScale(this.pdfLoader.getScale());
         this.canvasOverlay.setRotation(this.pdfLoader.getRotation()); // Add rotation
 
+        if (this.multiSelectMode) {
+            this.canvasOverlay.setMultiSelectMode(true);
+        }
+
         this.canvasOverlay.overlayCanvas.addEventListener('curveSelected', (e) => {
             this.handleCurveSelection(e.detail);
         });
@@ -392,18 +402,19 @@ class UnPlotApp {
                 this.canvasOverlay.enableSelectionMode(false);
             }
         } else {
-            this.selectedCurveForLabeling = detail.curve;
-            console.log(`Selected curve with ${detail.curve.points.length} points - enter a label to save it`);
-            this.curveLabelInput.focus();
+            if (this.multiSelectMode) {
+                if (!this.curveLabelInput.value.trim()) {
+                    this.curveLabelInput.focus();
+                }
+            } else {
+                this.selectedCurveForLabeling = detail.curve;
+                console.log(`Selected curve with ${detail.curve.points.length} points - enter a label to save it`);
+                this.curveLabelInput.focus();
+            }
         }
     }
 
     saveLabeledCurve() {
-        if (!this.selectedCurveForLabeling) {
-            console.log('No curve selected. Please click on a curve first.');
-            return;
-        }
-
         const label = this.curveLabelInput.value.trim();
         if (!label) {
             console.log('Please enter a label for the curve.');
@@ -411,31 +422,57 @@ class UnPlotApp {
             return;
         }
 
-        const existingIndex = this.labeledCurves.findIndex(
-            lc => lc.curve.curveIndex === this.selectedCurveForLabeling.curveIndex
-        );
-
-        if (existingIndex >= 0) {
-            this.labeledCurves[existingIndex].label = label;
-            console.log(`Updated label for curve to "${label}"`);
+        if (this.multiSelectMode) {
+            const selectedIndices = this.canvasOverlay.getMultiSelectedIndices();
+            if (selectedIndices.size === 0) {
+                console.log('No curves selected. Please click on curves first.');
+                return;
+            }
+            const allCurves = this.pathExtractor.getCurves();
+            const curves = [...selectedIndices].map(i => ({ ...allCurves[i], curveIndex: i }));
+            this.labeledCurves.push({ label, curves });
+            console.log(`Saved ${curves.length} curve(s) with label "${label}"`);
+            this.canvasOverlay.clearMultiSelection();
         } else {
-            this.labeledCurves.push({
-                label: label,
-                curve: this.selectedCurveForLabeling
-            });
-            console.log(`Saved curve with label "${label}"`);
+            if (!this.selectedCurveForLabeling) {
+                console.log('No curve selected. Please click on a curve first.');
+                return;
+            }
+            const existingIndex = this.labeledCurves.findIndex(
+                lc => lc.curves.length === 1 && lc.curves[0].curveIndex === this.selectedCurveForLabeling.curveIndex
+            );
+            if (existingIndex >= 0) {
+                this.labeledCurves[existingIndex].label = label;
+                console.log(`Updated label for curve to "${label}"`);
+            } else {
+                this.labeledCurves.push({ label, curves: [this.selectedCurveForLabeling] });
+                console.log(`Saved curve with label "${label}"`);
+            }
+            this.canvasOverlay.clearSelection();
+            this.selectedCurveForLabeling = null;
         }
 
         this.curveLabelInput.value = '';
-        this.canvasOverlay.clearSelection();
-        this.selectedCurveForLabeling = null;
-
         this.updateCurveBrowser();
         this.updateExportPreview();
 
-        // Show export section if calibration is complete and we have curves
         if (this.labeledCurves.length > 0 && this.axisCalibrator.isCalibrated) {
             this.exportSection.style.display = 'block';
+        }
+    }
+
+    toggleMultiSelectMode() {
+        this.multiSelectMode = this.multiSelectCheckbox.checked;
+        if (this.canvasOverlay) {
+            this.canvasOverlay.setMultiSelectMode(this.multiSelectMode);
+        }
+        if (!this.multiSelectMode) {
+            this.selectedCurveForLabeling = null;
+        }
+        if (this.labelingInstruction) {
+            this.labelingInstruction.textContent = this.multiSelectMode
+                ? 'Enter a label, then click curves to add them to that dataset.'
+                : 'Click on a curve to select it, then enter a label to add it.';
         }
     }
 
@@ -451,10 +488,15 @@ class UnPlotApp {
             li.className = 'curve-list-item';
             li.dataset.index = index;
 
+            const totalPoints = labeledCurve.curves.reduce((sum, c) => sum + c.points.length, 0);
+            const detailStr = labeledCurve.curves.length > 1
+                ? `${labeledCurve.curves.length} curves, ${totalPoints} pts`
+                : `${totalPoints} pts`;
+
             li.innerHTML = `
                 <div class="curve-info">
                     <span class="curve-label">${this.escapeHtml(labeledCurve.label)}</span>
-                    <span class="curve-details" style="float: right">${labeledCurve.curve.points.length} points</span>
+                    <span class="curve-details" style="float: right">${detailStr}</span>
                 </div>
                 <div class="curve-actions">
                     <button class="btn btn-icon btn-danger" data-action="delete" data-index="${index}">✕</button>
@@ -485,7 +527,7 @@ class UnPlotApp {
 
         const labeledCurve = this.labeledCurves[index];
         if (labeledCurve && this.canvasOverlay) {
-            this.canvasOverlay.highlightCurveByIndex(labeledCurve.curve.curveIndex);
+            this.canvasOverlay.setHighlightedCurveIndices(labeledCurve.curves.map(c => c.curveIndex));
         }
 
     }
@@ -516,6 +558,7 @@ class UnPlotApp {
 
             if (this.canvasOverlay) {
                 this.canvasOverlay.clearHighlight();
+                this.canvasOverlay.clearMultiSelection();
             }
             this.exportSection.style.display = 'none';
             console.log('Cleared all labeled curves');

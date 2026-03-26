@@ -17,25 +17,24 @@ export class DataExporter {
 
         this.labeledCurves = [];
         
-        labeledCurves.forEach(({ label, curve }) => {
-            const convertedPoints = [];
-            
-            curve.points.forEach(point => {
-                const converted = calibrator.convertPoint(point.x, point.y);
-                if (converted) {
-                    convertedPoints.push({
-                        x: converted.x,
-                        y: converted.y
-                    });
+        labeledCurves.forEach(({ label, curves }) => {
+            const convertedCurves = [];
+
+            curves.forEach(curve => {
+                const convertedPoints = [];
+                curve.points.forEach(point => {
+                    const converted = calibrator.convertPoint(point.x, point.y);
+                    if (converted) {
+                        convertedPoints.push({ x: converted.x, y: converted.y });
+                    }
+                });
+                if (convertedPoints.length > 0) {
+                    convertedCurves.push({ points: convertedPoints });
                 }
             });
 
-            if (convertedPoints.length > 0) {
-                this.labeledCurves.push({
-                    label: label,
-                    points: convertedPoints,
-                    curveIndex: curve.curveIndex
-                });
+            if (convertedCurves.length > 0) {
+                this.labeledCurves.push({ label, curves: convertedCurves });
             }
         });
 
@@ -44,10 +43,15 @@ export class DataExporter {
 
     exportAsCSV() {
         let csvContent = 'Label, X, Y\n';
-        
+
         this.labeledCurves.forEach(labeledCurve => {
-            labeledCurve.points.forEach((point) => {
-                csvContent += `${labeledCurve.label}, ${point.x}, ${point.y}\n`;
+            labeledCurve.curves.forEach((curve, curveIdx) => {
+                if (curveIdx > 0) {
+                    csvContent += '\n';
+                }
+                curve.points.forEach(point => {
+                    csvContent += `${labeledCurve.label}, ${point.x}, ${point.y}\n`;
+                });
             });
             csvContent += '\n';
         });
