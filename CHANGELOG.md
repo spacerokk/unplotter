@@ -6,6 +6,16 @@ The format is inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0
 
 ---
 
+## [1.5.0] - 2026-03-26
+
+### Added
+- 1:1 scale calibration mode
+- Multi-select mode
+- Thumbnail sidebar
+- Editable page number
+
+---
+
 ## [1.4.0] - 2026-02-19
 
 ### Added
